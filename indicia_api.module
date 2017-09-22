@@ -97,7 +97,8 @@ function indicia_api_menu() {
   $items[CONFIG_PATH] = array(
     'title' => 'Indicia API',
     'description' => 'Configure variables relating to the mobile authorisation module',
-    'page callback' => 'indicia_api_dashboard',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('indicia_api_dashboard'),
     'access arguments' => array('user mobile auth'),
     'file' => 'indicia_api.admin.inc',
   );

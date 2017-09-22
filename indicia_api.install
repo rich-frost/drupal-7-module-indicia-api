@@ -160,4 +160,6 @@ function indicia_api_uninstall() {
   drupal_uninstall_schema('indicia_api');
   // Don't remove the fields as they are being used by other parts of the
   // website.
+  variable_del('indicia_api_registration_redirect');
+  variable_del('indicia_api_registration_redirect_unsuccessful');
 }

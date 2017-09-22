@@ -158,8 +158,37 @@ function indicia_api_key($form, &$form_state, $keys = NULL) {
  *   The html of the page.
  */
 function indicia_api_dashboard() {
-  $r = '<p>This dashboard allows you to manage API client keys. </p>';
+  $form['intro'] = array(
+      '#markup' =>t('This dashboard allows you to manage API client keys.'),
+  );
 
+  $form['table'] = array(
+      '#markup' => indicia_api_dashboard_table(),
+  );
+
+  $form['registration_redirect'] = array (
+      '#type' => 'textfield',
+      '#title' => t('Activation success redirect'),
+      '#description' => t('Page to go to if account activation succeeds.'),
+      '#default_value' => variable_get('indicia_api_registration_redirect', '<front>'),      
+  );
+  
+  $form['registration_redirect_unsuccessful'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Activation fail redirect'),
+      '#description' => t('Page to go to if account activation fails.'),
+      '#default_value' => variable_get('indicia_api_registration_redirect_unsuccessful', '<front>'),      
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+function indicia_api_dashboard_table() {
   // Create table.
   $header = array('Enabled', 'Title', 'Description', 'Key', 'Logging', '');
   $rows = array();
@@ -201,8 +230,8 @@ function indicia_api_dashboard() {
     'rows' => $rows,
     'attributes' => array('style' => 'width:100%; text-align:left'),
   ));
-  $r .= $table;
-
+  $r = $table;
+  
   // Add links beneath the table.
   $links = array(
     'link1' => array(
@@ -211,16 +240,25 @@ function indicia_api_dashboard() {
       'attributes' => array('class' => array('button')),
     ),
   );
-
  
   $r .= theme('links', array(
     'links' => $links,
     'attributes' => array('class' => array('links', 'inline')),
   ));
 
-  $r .= '</fieldset>';
-
   return $r;
+}
+
+/**
+ * Submit handler to save redirection variables.
+ *
+ * Implements hook_submit() to submit a form produced by
+ * indicia_api_dashboard().
+ */
+function indicia_api_dashboard_submit($form, &$form_state) {
+  variable_set('indicia_api_registration_redirect', $form_state['values']['registration_redirect']);
+  variable_set('indicia_api_registration_redirect_unsuccessful', $form_state['values']['registration_redirect_unsuccessful']);
+  drupal_set_message(t('Saved redirection values.'));
 }
 
 /**
