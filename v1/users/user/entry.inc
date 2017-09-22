@@ -15,8 +15,9 @@ function indicia_api_user($uid = NULL, $activate = FALSE) {
       drupal_static('request', $request);
 
       if ($activate) {
-        indicia_api_log('[User activate]');
-        indicia_api_log(print_r($request, 1));
+        $log_mode = variable_get('indicia_api_activation_log', 0);
+        indicia_api_log('[User activate]', array(), WATCHDOG_NOTICE, NULL, $log_mode); 
+        indicia_api_log(print_r($request, 1), array(), WATCHDOG_NOTICE, NULL, $log_mode);
 
         // Only supports password reset at the moment.
         user_activate(load_user($uid));

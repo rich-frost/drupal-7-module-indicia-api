@@ -166,11 +166,25 @@ function indicia_api_dashboard() {
       '#markup' => indicia_api_dashboard_table(),
   );
 
+  $form['activation_log'] = array (
+      '#type' => 'select',
+      '#title' => t('Activation log mode'),
+      '#options' => array(
+        0 => t('None'),
+        WATCHDOG_ERROR => t('Error'),
+        WATCHDOG_DEBUG => t('Debug'),
+      ),
+      '#default_value' => variable_get('indicia_api_activation_log', 0), 
+      '#description' => t('Select log mode for all activation events.'),
+      '#access' => user_access('admin mobile auth'),
+  );
+  
   $form['registration_redirect'] = array (
       '#type' => 'textfield',
       '#title' => t('Activation success redirect'),
       '#description' => t('Page to go to if account activation succeeds.'),
       '#default_value' => variable_get('indicia_api_registration_redirect', '<front>'),      
+      '#access' => user_access('admin mobile auth'),
   );
   
   $form['registration_redirect_unsuccessful'] = array(
@@ -178,6 +192,7 @@ function indicia_api_dashboard() {
       '#title' => t('Activation fail redirect'),
       '#description' => t('Page to go to if account activation fails.'),
       '#default_value' => variable_get('indicia_api_registration_redirect_unsuccessful', '<front>'),      
+      '#access' => user_access('admin mobile auth'),
   );
   
   $form['submit'] = array(
@@ -258,7 +273,8 @@ function indicia_api_dashboard_table() {
 function indicia_api_dashboard_submit($form, &$form_state) {
   variable_set('indicia_api_registration_redirect', $form_state['values']['registration_redirect']);
   variable_set('indicia_api_registration_redirect_unsuccessful', $form_state['values']['registration_redirect_unsuccessful']);
-  drupal_set_message(t('Saved redirection values.'));
+  variable_set('indicia_api_activation_log', $form_state['values']['activation_log']);
+  drupal_set_message(t('Saved activation options.'));
 }
 
 /**

@@ -16,8 +16,9 @@ function user_activate($user) {
   $key = 'field_activation_token';
   if (!empty($user_obj->$key) && $user_obj->$key->value() === $code) {
     // Values match so activate account.
-    indicia_api_log("Activating user $uid with code $code.");
-
+    $message = t("Activating user $uid with code $code.");
+    $log_mode = variable_get('indicia_api_activation_log', 0);
+    indicia_api_log($message, array(), WATCHDOG_NOTICE, NULL, $log_mode); 
     $user_obj->$key->set(NULL);
     $user_obj->status->set(1);
     $user_obj->save();

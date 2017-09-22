@@ -162,4 +162,5 @@ function indicia_api_uninstall() {
   // website.
   variable_del('indicia_api_registration_redirect');
   variable_del('indicia_api_registration_redirect_unsuccessful');
+  variable_del('indicia_api_activation_log');
 }

@@ -404,19 +404,21 @@ function indicia_api_validate_password($pass) {
  *
  * Messages go to the PHP error log and the Drupal error log.
  */
-function indicia_api_log($message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
-  // Obtain log mode indicator.
-  if (!isset($_SERVER['HTTP_X_API_KEY']) || empty($_SERVER['HTTP_X_API_KEY'])) {
-    return;
+function indicia_api_log($message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL, $log_mode = NULL) {
+  if (!isset($log_mode)) {
+    // Obtain log mode indicator.
+    if (!isset($_SERVER['HTTP_X_API_KEY']) || empty($_SERVER['HTTP_X_API_KEY'])) {
+      return;
+    }
+
+    $key = $_SERVER['HTTP_X_API_KEY'];
+
+    $result = db_query("SELECT * FROM {indicia_api} WHERE api_key = :key",
+      array(':key' => $key));
+    $result_array = $result->fetchAll();
+    $log_mode = $result_array[0]->log;
   }
-
-  $key = $_SERVER['HTTP_X_API_KEY'];
-
-  $result = db_query("SELECT * FROM {indicia_api} WHERE api_key = :key",
-    array(':key' => $key));
-  $result_array = $result->fetchAll();
-  $log_mode = $result_array[0]->log;
-
+  
   switch ($log_mode) {
     case WATCHDOG_DEBUG:
       error_log($message);
