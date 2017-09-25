@@ -245,7 +245,6 @@ function indicia_api_dashboard_table() {
     'rows' => $rows,
     'attributes' => array('style' => 'width:100%; text-align:left'),
   ));
-  $r = $table;
   
   // Add links beneath the table.
   $links = array(
@@ -256,10 +255,15 @@ function indicia_api_dashboard_table() {
     ),
   );
  
-  $r .= theme('links', array(
+  $add_link = theme('links', array(
     'links' => $links,
     'attributes' => array('class' => array('links', 'inline')),
   ));
+  
+  $r = '<div class="form-item">';
+  $r .= $table;
+  $r .= $add_link;
+  $r .= '</div>';
 
   return $r;
 }
