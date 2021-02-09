@@ -17,7 +17,7 @@ indicia_api.user:
     _title: 'User'
   requirements:
     _permission: 'access content'
-    _method: 'GET|PUT'
+    _method: [OPTIONS, GET, PUT]
 indicia_api.users:
   path: '/api/v1/users'
   defaults:
@@ -25,7 +25,7 @@ indicia_api.users:
     _title: 'Users'
   requirements:
     _permission: 'access content'
-    _method: 'GET|POST'
+    _method: [OPTIONS, GET, PUT]
 indicia_api.samples:
   path: '/api/v1/samples'
   defaults:
