@@ -136,7 +136,8 @@ function indicia_api_authorise_key() {
  *   Drupal user object, or FALSE if not authorised.
  */
 function indicia_api_authorise_user() {
-  if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_USER'])) {
+  if (empty($_SERVER['PHP_AUTH_USER']) || empty($_SERVER['PHP_AUTH_PW'])) {
+    indicia_api_log('User or password was not sent');
     return FALSE;
   }
 
@@ -147,27 +148,38 @@ function indicia_api_authorise_user() {
   if(filter_var($_SERVER['PHP_AUTH_USER'], FILTER_VALIDATE_EMAIL)) {
     // Email.
     $existing_user = user_load_by_mail($name);
+    indicia_api_log('User loaded by mail');
 
     // In case the username is an email and username != email
     if (empty($existing_user)) {
       $existing_user = user_load_by_name($name);
+      indicia_api_log('User loaded by name');
     }
   }
   else {
     // Name.
+    indicia_api_log('User loaded by name');
     $existing_user = user_load_by_name($name);
   }
 
   if (empty($existing_user)) {
+    indicia_api_log('User was not found');
     return FALSE;
   }
 
   if (!\Drupal::service('user.auth')->authenticate($existing_user->get('name')->value, $password)) {
+    indicia_api_log('User password was incorrect');
     return FALSE;
-  } elseif ($existing_user->status != 1) {
+  }
+
+  if (!$existing_user->isActive()) {
+    indicia_api_log('User is not activated');
     // Check for activation.
     return FALSE;
   }
+
+  indicia_api_log('Successfully found user');
+  $GLOBALS['user'] = $existing_user;
 
   return $existing_user;
 }
@@ -231,7 +243,7 @@ function indicia_api_get_user_id($email, $firstname, $secondname, $cms_id = NULL
 
   // Obtain nonce.
   $curl_check = data_entry_helper::http_post(
-    helper_config::$base_url . 'index.php/services/security/get_nonce',
+    data_entry_helper::$base_url . 'index.php/services/security/get_nonce',
     $postargs);
 
   if ($curl_check['result']) {
@@ -252,7 +264,7 @@ function indicia_api_get_user_id($email, $firstname, $secondname, $cms_id = NULL
 
     // Request the user id.
     $get_id_results = data_entry_helper::http_post(
-      helper_config::$base_url . 'index.php/services/user_identifier/get_user_id',
+      data_entry_helper::$base_url . 'index.php/services/user_identifier/get_user_id',
       $postargs,
       FALSE);
     indicia_api_log(print_r($get_id_results, 1));
@@ -453,12 +465,10 @@ function indicia_api_mail($key, &$message, $params) {
       $path = $base_url . '/' . API_PATH;
       $activation_url = "$path/users/{$params['uid']}/activate?" .
         "activationToken={$params['activation_token']}";
-      $subject = variable_get('indicia_api_registration_subject', "Welcome to !site");
-      $body = variable_get('indicia_api_registration_body',
-        "Activate your account by visiting the following page in your web browser: !activation_url");
 
-      $message['subject'] = t($subject, array("!site" => variable_get('site_name', "Indicia")));
-      $message['body'][] = t($body, array("!activation_url" => $activation_url));
+      $site_name = \Drupal::config('system.site')->get('name');
+      $message['subject'] = t("Welcome to $site_name");
+      $message['body'][] = t("Activate your account by visiting the following page in your web browser: $activation_url");
       break;
   }
 }

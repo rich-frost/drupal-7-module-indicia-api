@@ -324,12 +324,15 @@ function validate_samples_create_request() {
     );
   }
 
-  if (!indicia_api_authorise_user() && !authorise_anonymous()) {
-    return array(
-      'code' => 400,
-      'header' => 'Bad Request',
-      'msg' => 'Could not find/authenticate user.',
-    );
+  $user_authenticated = !empty($_SERVER['PHP_AUTH_USER']) && indicia_api_authorise_user();
+  $anonymous_authenticated = empty($_SERVER['PHP_AUTH_USER']) && authorise_anonymous();
+
+  if (!$user_authenticated && !$anonymous_authenticated) {
+      return array(
+          'code' => 400,
+          'header' => 'Bad Request',
+          'msg' => 'Could not find/authenticate user.',
+        );
   }
 
   if (!isset($request['data']['type']) || $request['data']['type'] != 'samples') {
@@ -600,7 +603,6 @@ function extract_media_response($model) {
 }
 
 function forward_post_to($entity, $submission = NULL, $files = NULL, $writeTokens = NULL) {
-
   $media = prepare_media_for_upload($files);
   $request = data_entry_helper::$base_url . "index.php/services/data/$entity";
   $postargs = 'submission=' . urlencode(json_encode($submission));
@@ -610,7 +612,9 @@ function forward_post_to($entity, $submission = NULL, $files = NULL, $writeToken
     $postargs .= '&' . $token . '=' . ($value === TRUE ? 'true' : ($value === FALSE ? 'false' : $value));
   }
 
-  $user = indicia_api_authorise_user();
+  $user = $GLOBALS['user'];
+  indicia_api_log('indicia_user_id ' . $user->get(INDICIA_ID_FIELD)->value);
+
   $postargs .= '&user_id=' . $user->get(INDICIA_ID_FIELD)->value;
   // If there are images, we will send them after the main post,
   // so we need to persist the write nonce.
@@ -643,7 +647,7 @@ function forward_post_to($entity, $submission = NULL, $files = NULL, $writeToken
       if ((empty($item['media_type']) || preg_match('/:Local$/', $item['media_type'])) &&
         empty($item['id'])) {
         if (!isset(data_entry_helper::$final_image_folder) ||
-          data_entry_helper::$final_image_folder=='warehouse') {
+            data_entry_helper::$final_image_folder === 'warehouse') {
           // Final location is the Warehouse
           // @todo Set PERSIST_AUTH false if last file
           indicia_api_log('Uploading ' . $item['path']);
@@ -651,8 +655,8 @@ function forward_post_to($entity, $submission = NULL, $files = NULL, $writeToken
         }
         else {
           $success = rename(
-            $interim_image_folder.$item['path'],
-            $final_image_folder.$item['path']
+            data_entry_helper::getInterimImageFolder('fullpath') . $item['path'],
+            data_entry_helper::$final_image_folder.$item['path']
           );
         }
 
@@ -688,20 +692,16 @@ function prepare_media_for_upload($files = []) {
       }
       data_entry_helper::$validation_errors[$key] = lang::get('file too big for webserver');
     }
-    elseif (!data_entry_helper::check_upload_size($file)) {
+    elseif (!data_entry_helper::checkUploadSize($file)) {
       // Warehouse may still block it.
       if (data_entry_helper::$validation_errors==NULL) data_entry_helper::$validation_errors = array();
       data_entry_helper::$validation_errors[$key] = lang::get('file too big for warehouse');
     }
 
-
     $destination = $file['name'];
-    $interim_image_folder = isset(data_entry_helper::$interim_image_folder) ?
-      data_entry_helper::$interim_image_folder :
-      'upload/';
-    $uploadpath = data_entry_helper::relative_client_helper_path() . $interim_image_folder;
+    $uploadPath = data_entry_helper::getInterimImageFolder('fullpath');
 
-    if (move_uploaded_file($file['tmp_name'], $uploadpath . $destination)) {
+    if (move_uploaded_file($file['tmp_name'], $uploadPath . $destination)) {
       $r[] = array(
         // Id is set only when saving over an existing record.
         // This will always be a new record.

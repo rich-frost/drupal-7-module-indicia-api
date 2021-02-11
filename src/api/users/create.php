@@ -84,14 +84,27 @@ function validate_users_create_request() {
     );
   }
 
-  // Check for an existing user. If found return "already exists" error.
+  // Check for an existing user by mail. If found return "already exists" error.
   $user = user_load_by_mail($email);
   if ($user) {
     return array(
       'code' => 400,
       'header' => 'Bad Request',
-      'msg' => 'Account already exists.',
+      'msg' => 'Account already exists with that email.',
     );
+  }
+
+  // Check for an existing user by name. If found return "already exists" error.
+  $name = $data['username'];
+  if (isset($name) ) {
+    $user = user_load_by_name($name);
+    if ($user) {
+      return array(
+        'code' => 400,
+        'header' => 'Bad Request',
+        'msg' => 'Account already exists with that username.',
+      );
+    }
   }
 
   return array();
@@ -104,11 +117,16 @@ function create_new_user() {
   // Create user object.
   $user = User::create();
 
+  $name = $data['username'];
+  if (!isset($name) ) {
+    $name = $data['email'];
+  }
+
   //Mandatory settings
   $user->setPassword($data['password']);
   $user->enforceIsNew();
   $user->setEmail($data['email']);
-  $user->setUsername($data['email']);
+  $user->setUsername($name);
 
   $user->set(FIRSTNAME_FIELD, $data['firstname']);
   $user->set(SECONDNAME_FIELD, $data['secondname']);
@@ -135,22 +153,32 @@ function create_new_user() {
 
 
 function send_activation_email($new_user) {
-  return error_print(201, 'Yo!!', $new_user);
-  break;
-
   indicia_api_log('Sending activation email to ' . $new_user->getEmail());
   $request = drupal_static('request');
 
   $params = [
     'uid' => $new_user->id(),
-    'activation_token' => $new_user->get(ACTIVATION_FIELD)->value->get(LANGUAGE_NONE)->value->get('value')[0],
+    'activation_token' => $new_user->get(ACTIVATION_FIELD)->value,
   ];
-  drupal_mail('indicia_api',
+
+  $mailManager = \Drupal::service('plugin.manager.mail');
+  $result = $mailManager->mail(
+    'indicia_api',
     'register',
     $new_user->getEmail(),
-    user_preferred_language($new_user),
-    $params
+    $new_user->getPreferredLangcode(),
+    $params,
+    NULL,
+    true
   );
+
+  // TODO:
+  // if ($result['result'] !== true) {
+  //   error_print('There was a problem sending activation email.');
+  // }
+  // else {
+  //   error_print('Activation email was sent.');
+  // }
 }
 
 function user_details_after_create($user_full, $fullDetails = FALSE) {
@@ -178,6 +206,6 @@ function user_details_after_create($user_full, $fullDetails = FALSE) {
     'Access-Control-Allow-Methods' => 'GET,PUT,OPTIONS',
     'Access-Control-Allow-Headers' => 'authorization, x-api-key, content-type',
   ];
-  return new JsonResponse($data, '201', $headers);
+  return new JsonResponse($output, '201', $headers);
 
 }
